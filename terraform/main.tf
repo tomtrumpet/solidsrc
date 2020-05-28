@@ -1,3 +1,7 @@
+locals {
+  site_location = "${path.module}/../site"
+}
+
 provider "aws" {
   region = "eu-west-2"
 
@@ -11,9 +15,9 @@ provider "aws" {
 
 terraform {
   backend "s3" {
-    bucket = "solidsrc-website-state"
-    key    = "terraform.tfstate"
-    region = "eu-west-2"
+    bucket         = "solidsrc-website-state"
+    key            = "terraform.tfstate"
+    region         = "eu-west-2"
     dynamodb_table = "solidsrc-lock"
   }
 }
@@ -38,8 +42,18 @@ module "cdn" {
   acm_certificate_arn      = "${var.acm_certificate_arn}"
 }
 
+data "archive_file" "init" {
+  type        = "zip"
+  source_dir  = "${local.site_location}"
+  output_path = "data.zip"
+}
+
 resource "null_resource" "upload_to_s3" {
+  triggers {
+    src_hash = "${data.archive_file.init.output_sha}"
+  }
+
   provisioner "local-exec" {
-    command = "aws s3 sync ${path.module}/../site s3://${module.cdn.s3_bucket_id}"
+    command = "aws s3 sync ${local.site_location} s3://${module.cdn.s3_bucket_id}"
   }
 }
