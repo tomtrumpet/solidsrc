@@ -42,15 +42,15 @@ module "cdn" {
   acm_certificate_arn      = "${var.acm_certificate_arn}"
 }
 
-data "archive_file" "init" {
+data "archive_file" "site" {
   type        = "zip"
   source_dir  = "${local.site_location}"
-  output_path = "data.zip"
+  output_path = "site.zip"
 }
 
 resource "null_resource" "upload_to_s3" {
   triggers {
-    src_hash = "${data.archive_file.init.output_sha}"
+    src_hash = "${data.archive_file.site.output_sha}"
   }
 
   provisioner "local-exec" {
